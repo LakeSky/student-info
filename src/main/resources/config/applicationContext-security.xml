@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+             xmlns:beans="http://www.springframework.org/schema/beans"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+           http://www.springframework.org/schema/security
+           http://www.springframework.org/schema/security/spring-security-4.2.xsd">
+
+    <http pattern="*.jpg" security="none"/>
+    <http pattern="*.png" security="none"/>
+    <http pattern="*.gif" security="none"/>
+    <http pattern="*.css" security="none"/>
+    <http pattern="*.ico" security="none"/>
+    <http pattern="/js/**" security="none"/>
+    <http pattern="/css/**" security="none"/>
+    <!--前后端分离的项目为前端静态项目预留的地址-->
+    <http pattern="/front/**" security="none"/>
+    <http pattern="/images/**" security="none"/>
+    <http pattern="/static/**" security="none"/>
+    <http pattern="/favicon.ico" security="none"/>
+    <http pattern="/login/**" security="none"/>
+    <http pattern="/file/downLoad" security="none"/>
+    <http auto-config="true" use-expressions="false">
+        <intercept-url pattern="/error/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
+        <intercept-url pattern="/auto/home" access="ROLE_ROOT"/>
+        <intercept-url pattern="/home" access="IS_AUTHENTICATED_FULLY"/>
+        <intercept-url pattern="/busi/home" access="IS_AUTHENTICATED_FULLY"/>
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
+        <form-login login-page="/login/home" default-target-url="/busi/home" always-use-default-target="true" login-processing-url="/j_security_cat_check"/>
+        <logout logout-success-url="/login/home"/>
+
+        <access-denied-handler ref="myAccessDeniedHandler"/>
+
+        <csrf disabled="true"/>
+
+        <!--解决页面不能通过iframe引用的问题-->
+        <headers>
+            <frame-options policy="SAMEORIGIN"/>
+        </headers>
+
+        <!--https连接示例-->
+        <!--<intercept-url pattern="/secure/**" access="ROLE_USER" requires-channel="https"/>-->
+        <!--只允许登录一次-->
+        <!--<session-management invalid-session-url="/invalidSession.htm" session-authentication-error-url="/invalidSession.htm">
+            <concurrency-control max-sessions="1" error-if-maximum-exceeded="true"/>
+        </session-management>-->
+        <!--防止登出又登入时出现问题删除cookies-->
+        <!--<logout delete-cookies="JSESSIONID"/>-->
+        <!--自定义的Filter实现-->
+        <custom-filter ref="myFilter" before="FILTER_SECURITY_INTERCEPTOR"/>
+    </http>
+    <!-- 配资过滤器 -->
+    <beans:bean id="myFilter" class="com.kzh.sys.service.sys.security.MySecurityFilter">
+        <!-- 用户拥有的权限 -->
+        <beans:property name="authenticationManager" ref="myAuthenticationManager"/>
+        <!-- 用户是否拥有所请求资源的权限 -->
+        <beans:property name="accessDecisionManager" ref="myAccessDecisionManager"/>
+        <!-- 资源与权限对应关系 -->
+        <beans:property name="securityMetadataSource" ref="mySecurityMetadataSource"/>
+    </beans:bean>
+
+    <!-- 实现了UserDetailsService的Bean -->
+    <authentication-manager alias="myAuthenticationManager">
+        <authentication-provider user-service-ref="myUserDetailService">
+            <!--<password-encoder hash="sha">
+                <salt-source user-property="username"/>
+            </password-encoder>-->
+        </authentication-provider>
+    </authentication-manager>
+    <beans:bean id="myAccessDecisionManager" class="com.kzh.sys.service.sys.security.MyAccessDecisionManager"/>
+    <beans:bean id="mySecurityMetadataSource" class="com.kzh.sys.service.sys.security.MySecurityMetadataSource"/>
+    <beans:bean id="myUserDetailService" class="com.kzh.sys.service.sys.security.MyUserDetailService"/>
+
+    <!-- 自定义权限不足处理程序 -->
+    <beans:bean id="myAccessDeniedHandler" class="com.kzh.sys.service.sys.security.MyAccessDeniedHandler">
+        <beans:property name="errorPage" value="/error/nopermission"/>
+    </beans:bean>
+
+</beans:beans>
